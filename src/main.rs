@@ -1,38 +1,9 @@
 use clap::{Parser, Subcommand};
 use std::{env, path};
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
 use anyhow::{Context, Result, bail};
-use serde::{Deserialize, Serialize};
+use std::fs;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Root {
-    pub foo: i64,
-
-    // Ignore unknown fields
-    #[serde(flatten)]
-    unknown: serde_json::Map<String, serde_json::Value>,
-}
-
-fn read_config() -> Result<Root> {
-    let mut file = File::open("config.json")?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    let config: Root = serde_json::from_str(&contents)?;
-
-    Ok(config)
-}
-
-fn write_config(config: &Root) -> Result<()> {
-    let mut file = File::create("config.json")?;
-    let json_str = serde_json::to_string_pretty(config)?;
-
-    file.write_all(json_str.as_bytes())?;
-    Ok(())
-}
-
+mod config;
 
 /// A lite re-implementation of Regolith in Rust.
 #[derive(Parser, Debug)]
@@ -88,10 +59,10 @@ fn main() {
             println!("Regolith Run!")
         }
         Command::Test {} => {
-            let mut config = read_config().expect("Could not read config");
+            let mut config = config::read().expect("Could not read config");
             config.foo = 200;
 
-            write_config(&config).expect("Could not write config.");
+            config::write(&config).expect("Could not write config.");
         }
     }
 }
