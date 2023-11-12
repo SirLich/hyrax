@@ -16,11 +16,16 @@ pub struct InitParams {
 
     /// Define the author of the project
     #[arg(short, long, default_value="Your name")]
-   pub author: String,
+    pub author: String,
 
     /// Define the name of the project
     #[arg(short, long, default_value="Project name")]
     pub name: String,
+}
+
+#[derive(Debug, Args)]
+pub struct RunParams {
+
 }
 
 #[derive(Subcommand, Debug)]

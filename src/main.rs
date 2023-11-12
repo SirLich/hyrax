@@ -112,10 +112,11 @@ fn main() {
             println!("Regolith Run!")
         }
         Command::Test {} => {
+            println!("Hello World!");
             let mut config = config::read().expect("Could not read config");
-            config.foo = 200;
+            // config.foo = 200;
 
-            config::write(&config).expect("Could not write config.");
+            // config::write(&config).expect("Could not write config.");
         }
     }
 }
