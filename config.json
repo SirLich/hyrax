@@ -1,4 +1,21 @@
 {
-  "foo": 200,
-  "bar": 10
+  "author": "SirLich",
+  "name": "Hello",
+  "packs": {
+    "behaviorPack": "./project/BP",
+    "resourcePack": "./project/RP"
+  },
+  "regolith": {
+    "dataPath": "./project/data",
+    "filterDefinitions": {},
+    "profiles": {
+      "default": {
+        "export": {
+          "readOnly": false,
+          "target": "development"
+        },
+        "filters": []
+      }
+    }
+  }
 }
