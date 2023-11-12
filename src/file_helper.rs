@@ -1,7 +1,8 @@
 use std::path::Path;
 use walkdir::WalkDir;
-
+use std::fs;
 use anyhow::{Context, Result, bail};
+use crate::global;
 
 use std::path::PathBuf;
 
@@ -13,10 +14,17 @@ pub fn is_dir_empty(path: PathBuf) -> Result<bool> {
 pub fn clean_dir(path: &Path) -> Result<()> {
 	for entry in WalkDir::new(path) {
 		let entry = entry.context("Failed to access a file")?;
+		let path = entry.path();
 
 		// Skip Directories
-		if entry.path().is_dir() {
+		if path.is_dir() {
 			continue;
+		}
+		
+		let metadata = fs::metadata(path).expect("No metadata found");
+
+		if metadata.modified()? != global::magic_time() {
+			bail!("File has incorrect edit time!")
 		}
 
 		println!("{}", entry.path().display());
