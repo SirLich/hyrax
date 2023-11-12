@@ -10,8 +10,17 @@ pub fn is_dir_empty(path: PathBuf) -> Result<bool> {
     Ok(is_empty)
 }
 
-pub fn clean_dir(path: &Path) {
-	for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+pub fn clean_dir(path: &Path) -> Result<()> {
+	for entry in WalkDir::new(path) {
+		let entry = entry.context("Failed to access a file")?;
+
+		// Skip Directories
+		if entry.path().is_dir() {
+			continue;
+		}
+
 		println!("{}", entry.path().display());
 	}
+
+	Ok(())
 }

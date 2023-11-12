@@ -66,10 +66,10 @@ pub struct RunFilter {
 #[serde(rename_all = "camelCase")]
 pub struct ExportData {
     /// The export type (e.g., exact)
-    target: String,
+    pub target: String,
 
     /// The export location, used with 'exact'
-    path: String
+    pub path: String
 
 }
 
@@ -78,10 +78,10 @@ pub struct ExportData {
 pub struct Profile {
 
     /// The list of filters to execute, when this profile is run
-    filters: Vec<RunFilter>,
+    pub filters: Vec<RunFilter>,
 
     /// The export data, which defines where this profile will be exported
-    export: ExportData,
+    pub export: ExportData,
 
     // Capture unknown fields
     #[serde(flatten)]

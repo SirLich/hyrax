@@ -12,7 +12,7 @@
       "default": {
         "export": {
           "target": "exact",
-          "path": "C:/liam/git/regolite/test"
+          "path": "C:/liam/git/regolite/test/"
         },
         "filters": []
       }
