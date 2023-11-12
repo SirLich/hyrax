@@ -11,8 +11,8 @@
     "profiles": {
       "default": {
         "export": {
-          "readOnly": false,
-          "target": "development"
+          "target": "exact",
+          "path": "C:/liam/git/regolite/test"
         },
         "filters": []
       }

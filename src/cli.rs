@@ -25,16 +25,19 @@ pub struct InitParams {
 
 #[derive(Debug, Args)]
 pub struct RunParams {
-
+    #[clap(default_value = "default")]
+    pub profile: String,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Initializes a new Regolite project
     Init(InitParams),
-    Run {
 
-    },
+    /// Runs the specified profile
+    Run(RunParams),
+
+    /// Test
     Test {
 
     }

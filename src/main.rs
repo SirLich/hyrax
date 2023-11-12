@@ -1,11 +1,14 @@
 mod config;
 mod cli;
+mod file_helper;
+mod global; 
+mod runner;
 
 use std::env;
 use std::io::Write;
 use std::path;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 
 use cli::Command;
 use clap::Parser;
@@ -17,10 +20,6 @@ use std::fs::File;
 
 use serde_json::json;
 
-fn is_directory_empty(path: path::PathBuf) -> Result<bool> {
-    let is_empty = path.read_dir().context("Failed to test whether the current directory is empty.")?.next().is_none();
-    Ok(is_empty)
-}
 
 fn write_gitignore(force: bool) -> Result<()> {
     let path = Path::new(".gitignore");
@@ -84,7 +83,7 @@ fn initialize_project(params: cli::InitParams) -> Result<()> {
     println!("Initializing project in '{}' (force={})", current_dir.as_path().display(), force);
 
 
-    if !force && !is_directory_empty(current_dir)? {
+    if !force && !file_helper::is_dir_empty(current_dir)? {
         bail!("Directory is not empty. Consider running with --force")
     }
 
@@ -108,15 +107,11 @@ fn main() {
         Command::Init(params) => {
             initialize_project(params).expect("Could not initialize project.")
         },
-        Command::Run { } => {
-            println!("Regolith Run!")
+        Command::Run(params) => {
+            runner::run(params).expect("Could not run")
         }
         Command::Test {} => {
             println!("Hello World!");
-            let mut config = config::read().expect("Could not read config");
-            // config.foo = 200;
-
-            // config::write(&config).expect("Could not write config.");
         }
     }
 }
