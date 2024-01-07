@@ -1,4 +1,10 @@
+use std::path::PathBuf;
+use std::env;
+
+use anyhow::{Result, bail};
 use clap::{Parser, Subcommand, Args};
+
+use crate::file_helper;
 
 /// A lite re-implementation of Regolith in Rust.
 #[derive(Parser, Debug)]
@@ -21,6 +27,20 @@ pub struct InitParams {
     /// Define the name of the project
     #[arg(short, long, default_value="Project name")]
     pub name: String,
+
+    /// Defines the working directory for this command.
+    #[arg(short, long, default_value="")]
+    pub dir: PathBuf,
+}
+
+impl InitParams {
+    pub fn working_dir(&self) -> Result<PathBuf> {
+        if self.dir.exists() {
+            Ok(file_helper::absolute_path(&self.dir.clone())?)
+        } else {
+            Ok(env::current_dir()?)
+        }
+    }
 }
 
 #[derive(Debug, Args)]

@@ -9,11 +9,12 @@ use std::io::Write;
 use std::path;
 
 use anyhow::{Result, bail};
+use path_clean::{clean, PathClean};
 
 use cli::Command;
 use clap::Parser;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use std::fs;
 use std::fs::File;
@@ -21,12 +22,12 @@ use std::fs::File;
 use serde_json::json;
 
 
-fn write_gitignore(force: bool) -> Result<()> {
-    let path = Path::new(".gitignore");
+fn write_gitignore(dir: &PathBuf, force: bool) -> Result<()> {
+    let path: &Path = &dir.join(".gitignore");
 
     if force && path.exists() {
         println!("Initialization forced: deleting .gitignore");
-        fs::remove_file(".gitignore")?;
+        fs::remove_file(path)?;
     }
 
     let mut file = File::create(path)?;
@@ -36,8 +37,8 @@ fn write_gitignore(force: bool) -> Result<()> {
     Ok(())
 }
 
-fn write_config(params: cli::InitParams) -> Result<()> {
-    let path: &Path = Path::new("config.json");
+fn write_config(dir: &PathBuf, params: cli::InitParams) -> Result<()> {
+    let path: &Path = &dir.join("config.json");
 
     if params.force && path.exists() {
         println!("Initialization forced: deleting config.json");
@@ -78,23 +79,21 @@ fn write_config(params: cli::InitParams) -> Result<()> {
 
 fn initialize_project(params: cli::InitParams) -> Result<()> {
     let force = params.force;
-    let current_dir: path::PathBuf = env::current_dir()?;
+    let working_dir: path::PathBuf = params.working_dir()?;
 
-    println!("Initializing project in '{}' (force={})", current_dir.as_path().display(), force);
+    println!("Initializing project in '{}' (force={})", working_dir.as_path().display(), force);
 
-
-    if !force && !file_helper::is_dir_empty(current_dir)? {
+    if !force && !file_helper::is_dir_empty(&working_dir)? {
         bail!("Directory is not empty. Consider running with --force")
     }
 
+    write_gitignore(&working_dir, force)?;
+    write_config(&working_dir, params)?;
 
-    write_gitignore(force)?;
-    write_config(params)?;
-
-    fs::create_dir_all(".regolith/cache/venvs")?;
-    fs::create_dir_all("project/BP")?;
-    fs::create_dir_all("project/RP")?;
-    fs::create_dir_all("project/data")?;
+    fs::create_dir_all(working_dir.join(".regolith/cache/venvs"))?;
+    fs::create_dir_all(working_dir.join("project/BP"))?;
+    fs::create_dir_all(working_dir.join("project/RP"))?;
+    fs::create_dir_all(working_dir.join("project/data"))?;
 
 
     Ok(())
