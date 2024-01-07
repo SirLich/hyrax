@@ -12,7 +12,28 @@ use crate::file_helper;
 pub struct Root {
     #[command(subcommand)]
     pub command: Command,
+
+    #[clap(flatten)]
+    pub global_opts: GlobalOpts,
 }
+
+#[derive(Debug, Args)]
+pub struct GlobalOpts {
+    /// Defines the working directory for this command. Can be relative, or absolute.
+    #[arg(short, long, default_value="", global=true)]
+    pub dir: PathBuf,
+}
+
+impl GlobalOpts {
+    pub fn working_dir(&self) -> Result<PathBuf> {
+        if self.dir.exists() {
+            Ok(file_helper::absolute_path(&self.dir.clone())?)
+        } else {
+            Ok(env::current_dir()?)
+        }
+    }
+}
+
 
 #[derive(Debug, Args)]
 pub struct InitParams {
@@ -27,26 +48,20 @@ pub struct InitParams {
     /// Define the name of the project
     #[arg(short, long, default_value="Project name")]
     pub name: String,
-
-    /// Defines the working directory for this command. Can be relative, or absolute.
-    #[arg(short, long, default_value="")]
-    pub dir: PathBuf,
 }
 
-impl InitParams {
-    pub fn working_dir(&self) -> Result<PathBuf> {
-        if self.dir.exists() {
-            Ok(file_helper::absolute_path(&self.dir.clone())?)
-        } else {
-            Ok(env::current_dir()?)
-        }
-    }
-}
 
 #[derive(Debug, Args)]
 pub struct RunParams {
     #[clap(default_value = "default")]
     pub profile: String,
+}
+
+#[derive(Debug, Args)]
+pub struct InstallParams {
+    /// Forcefully initializes the project
+    #[arg(short, long)]
+    pub force: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -57,7 +72,10 @@ pub enum Command {
     /// Runs the specified profile
     Run(RunParams),
 
-    /// Test
+    /// Installs the specified filter
+    Install(InstallParams),
+
+    /// Test harness, for quickly running arbitrary code.
     Test {
 
     }

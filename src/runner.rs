@@ -1,3 +1,4 @@
+use crate::cli::GlobalOpts;
 use crate::cli::RunParams;
 use crate::config;
 use crate::file_helper;
@@ -11,7 +12,7 @@ fn clean_export(profile: config::Profile) ->Result<()> {
 }
 
 
-pub fn run(params: RunParams) -> Result<()> {
+pub fn run(params: RunParams, opts: GlobalOpts) -> Result<()> {
 	let config = config::read()?;
 	let profile = config.get_profile(params.profile)?;
 

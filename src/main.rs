@@ -3,6 +3,7 @@ mod cli;
 mod file_helper;
 mod global; 
 mod runner;
+mod installer;
 
 use std::env;
 use std::io::Write;
@@ -77,9 +78,9 @@ fn write_config(dir: &PathBuf, params: cli::InitParams) -> Result<()> {
 }
 
 
-fn initialize_project(params: cli::InitParams) -> Result<()> {
+fn initialize_project(params: cli::InitParams, opts: cli::GlobalOpts) -> Result<()> {
     let force = params.force;
-    let working_dir: path::PathBuf = params.working_dir()?;
+    let working_dir: path::PathBuf = opts.working_dir()?;
 
     println!("Initializing project in '{}' (force={})", working_dir.as_path().display(), force);
 
@@ -104,11 +105,14 @@ fn main() {
 
     match cli.command {
         Command::Init(params) => {
-            initialize_project(params).expect("Could not initialize project.")
+            initialize_project(params, cli.global_opts).expect("Could not initialize project")
         },
         Command::Run(params) => {
-            runner::run(params).expect("Could not run")
-        }
+            runner::run(params, cli.global_opts).expect("Could not run")
+        },
+        Command::Install(params) => {
+            installer::install(params, cli.global_opts).expect("Could not install")
+        },
         Command::Test {} => {
             println!("Hello World!");
         }
