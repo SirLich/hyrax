@@ -28,7 +28,7 @@ pub struct InitParams {
     #[arg(short, long, default_value="Project name")]
     pub name: String,
 
-    /// Defines the working directory for this command.
+    /// Defines the working directory for this command. Can be relative, or absolute.
     #[arg(short, long, default_value="")]
     pub dir: PathBuf,
 }
