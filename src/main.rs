@@ -91,6 +91,7 @@ fn initialize_project(params: cli::InitParams, opts: cli::GlobalOpts) -> Result<
     write_gitignore(&working_dir, force)?;
     write_config(&working_dir, params)?;
 
+    fs::create_dir_all(working_dir.join(".regolith/cache/filters"))?;
     fs::create_dir_all(working_dir.join(".regolith/cache/venvs"))?;
     fs::create_dir_all(working_dir.join("project/BP"))?;
     fs::create_dir_all(working_dir.join("project/RP"))?;
