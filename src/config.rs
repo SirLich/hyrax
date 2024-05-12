@@ -1,10 +1,10 @@
 #![allow(unused_braces)]
 
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::fs::{File};
-use std::io::{Read, Write};
-use anyhow::{Result, bail, Context};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read, Write};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -48,7 +48,7 @@ pub struct FilterDefinition {
 #[serde(rename_all = "camelCase")]
 pub struct RunFilter {
     /// The filter to run, sourced from filterDefinitions.json
-    filter: String, 
+    filter: String,
 
     /// Settings object, which will be passed to the filter as json
     settings: serde_json::Value,
@@ -69,14 +69,12 @@ pub struct ExportData {
     pub target: String,
 
     /// The export location, used with 'exact'
-    pub path: String
-
+    pub path: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
-
     /// The list of filters to execute, when this profile is run
     pub filters: Vec<RunFilter>,
 
@@ -105,7 +103,8 @@ pub fn read() -> Result<Config> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    let config: Config = serde_json::from_str(&contents).context("Could not parse contents of config.json")?;
+    let config: Config =
+        serde_json::from_str(&contents).context("Could not parse contents of config.json")?;
 
     Ok(config)
 }
@@ -119,12 +118,11 @@ pub fn write(config: &Config) -> Result<()> {
 }
 
 impl Config {
-
     /// Fetches a profile by name, or error if not exists.
-    pub fn get_profile(&self, profile_name : String) -> Result<Profile> {
+    pub fn get_profile(&self, profile_name: String) -> Result<Profile> {
         match self.regolith.profiles.get(&profile_name) {
             Some(p) => Ok(p.clone()),
-            None => bail!("Profile '{}' does not exist", profile_name)
+            None => bail!("Profile '{}' does not exist", profile_name),
         }
     }
 }

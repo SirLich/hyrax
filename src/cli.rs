@@ -1,8 +1,8 @@
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
-use anyhow::{Result, bail};
-use clap::{Parser, Subcommand, Args};
+use anyhow::{bail, Result};
+use clap::{Args, Parser, Subcommand};
 
 use crate::file_helper;
 
@@ -20,7 +20,7 @@ pub struct Root {
 #[derive(Debug, Args)]
 pub struct GlobalOpts {
     /// Defines the working directory for this command. Can be relative, or absolute.
-    #[arg(short, long, default_value=".", global=true)]
+    #[arg(short, long, default_value = ".", global = true)]
     pub dir: PathBuf,
 }
 
@@ -34,10 +34,9 @@ impl GlobalOpts {
     }
 
     pub fn cache(&self) -> Result<PathBuf> {
-        Ok(self.working_dir()?.join(".regolith/cache"))
+        Ok(self.working_dir()?.join(".hyrax/cache"))
     }
 }
-
 
 #[derive(Debug, Args)]
 pub struct InitParams {
@@ -46,14 +45,16 @@ pub struct InitParams {
     pub force: bool,
 
     /// Define the author of the project
-    #[arg(short, long, default_value="Your name")]
+    #[arg(short, long, default_value = "Your name")]
     pub author: String,
 
     /// Define the name of the project
-    #[arg(short, long, default_value="Project name")]
+    #[arg(short, long, default_value = "Project name")]
     pub name: String,
 }
 
+#[derive(Debug, Args)]
+pub struct NewParams {}
 
 #[derive(Debug, Args)]
 pub struct RunParams {
@@ -72,61 +73,57 @@ pub struct InstallParams {
     pub force: bool,
 }
 
-pub struct FilterIdentifier {
-    /// The 'regolith' style URL, e.g, github.com/Bedrock-OSS/regolith-filters/name_ninja
-    pub regolith_url: String,
-
-    /// The URL, e.g., https://github.com/Bedrock-OSS/regolith-filters
+pub struct UrlDescriptor {
+    /// The URL to the repository root, e.g., https://github.com/Bedrock-OSS/regolith-filters
     pub url: String,
 
-    /// The identifier, e.g, name_ninja
-    pub filter_name: String,
+    /// The author of the repo (e.g., SirLich)
+    pub author_name: String,
 
-    /// The filepath where the filter.json can be found. e.g, C:/projects/project/.regolith/filters/name_ninja [/filter.json]
-    pub file_path: PathBuf
+    /// The name of the repo (e.g, funtils)
+    pub repo_name: String,
+
+    /// The filepath where the filter.json can be found. e.g, C:/projects/project/.hyrax/filters/sirlich/functils
+    pub file_path: PathBuf,
 }
 
-impl FilterIdentifier {
-
-}
+impl UrlDescriptor {}
 
 enum FilterIdentifierType {
     ShortName,
     WebUrl,
-    RegolithUrl
+    RegolithUrl,
 }
 
-
 impl InstallParams {
-    pub fn get_filter_identifier(&self, opts: &GlobalOpts) -> Result<FilterIdentifier>{
+    pub fn get_filter_identifier(&self, opts: &GlobalOpts) -> Result<UrlDescriptor> {
         match self.get_identifier_type() {
             FilterIdentifierType::ShortName => {
                 bail!("Short-name URLs are not yet implemented.")
-            },
+            }
             FilterIdentifierType::WebUrl => {
-                bail!("Urls are not supported. Write it as a regolith-style url")
-            },
+                let prefix = "https://github.com/";
+                let parts = self
+                    .filter
+                    .as_str()
+                    .strip_prefix(prefix)
+                    .expect("Should be a github URL.")
+                    .split("/")
+                    .collect::<Vec<&str>>();
+
+                println!("{:?}", parts);
+
+                let name = parts[3].to_owned();
+
+                return Ok(UrlDescriptor {
+                    url: "https://".to_owned() + parts[0] + "/" + parts[1] + "/" + parts[2],
+                    author_name: name.clone(),
+                    repo_name: name.clone(),
+                    file_path: opts.cache()?.join(name),
+                });
+            }
             FilterIdentifierType::RegolithUrl => {
-                let parts = self.filter.as_str().split("/").collect::<Vec<&str>>();
-
-                match parts.len() {
-                    4 => {
-                        let name = parts[3].to_owned();
-
-                        return Ok(FilterIdentifier {
-                            regolith_url: self.filter.clone(),
-                            url: "https://".to_owned() + parts[0] + "/" + parts[1] + "/" + parts[2],
-                            filter_name: name.clone(),
-                            file_path: opts.cache()?.join(name)
-                        })
-                    },
-                    3 => {
-                        bail!("Top level filters are not implemented")
-                    },
-                    _ => {
-                        bail!("Is this URL malformed?")
-                    } 
-                }
+                bail!("Regolith URLs are not supported.")
             }
         }
     }
@@ -144,10 +141,9 @@ impl InstallParams {
     }
 }
 
-
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Initializes a new Regolite project
+    /// Initializes a new Hyrax project. Intended to be run in a configured godot project.
     Init(InitParams),
 
     /// Runs the specified profile
@@ -156,9 +152,9 @@ pub enum Command {
     /// Installs the specified filter
     Install(InstallParams),
 
+    /// Creates a new project based on the template
+    New(NewParams),
+
     /// Test harness, for quickly running arbitrary code.
-    Test {
-
-    }
+    Test {},
 }
-
