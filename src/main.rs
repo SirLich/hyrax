@@ -3,7 +3,6 @@ mod config;
 mod file_helper;
 mod global;
 mod installer;
-mod runner;
 
 use std::env;
 use std::io::Write;
@@ -106,18 +105,17 @@ fn main() {
     let cli = cli::Root::parse();
 
     match cli.command {
-        Command::Init(params) => {
-            initialize_project(params, cli.global_opts).expect("Could not initialize project")
-        }
-        Command::Run(params) => runner::run(params, cli.global_opts).expect("Could not run"),
         Command::Install(params) => {
             installer::install(params, cli.global_opts).expect("Could not install")
         }
         Command::Test {} => {
             println!("Hello World!");
         }
-        Command::New(params) => {
-            println!("New project")
+        Command::Add(params) => {
+            installer::add(params).unwrap();
+        }
+        Command::Sync {} => {
+            installer::sync().unwrap();
         }
     }
 }

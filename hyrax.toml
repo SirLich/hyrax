@@ -1,0 +1,5 @@
+[[dependencies]]
+url = "https://github.com/SirLich/SirLich.github.io"
+reference = "main"
+source = "content/descriptions"
+destination = "test_download"

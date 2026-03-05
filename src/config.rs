@@ -1,128 +1,67 @@
 #![allow(unused_braces)]
 
 use anyhow::{bail, Context, Result};
+use git2::Config;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{read_to_string, File};
 use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use toml::Table;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+use crate::cli::AddParams;
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Config {
-    pub author: String,
-    pub name: String,
-    pub regolith: Regolith,
-
-    // Capture unknown fields
-    #[serde(flatten)]
-    unknown: serde_json::Map<String, serde_json::Value>,
+pub struct HyraxDependency {
+    pub url: String,
+    pub reference: String,
+    pub source: PathBuf,
+    pub destination: PathBuf,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FilterDefinition {
-    /// The version of the filter (for remote)
-    version: String,
-
-    /// The URL of the filter (for remote)
-    url: String,
-
-    /// The execution type for the filter (for local)
-    run_with: String,
-
-    /// The path of the script to execute (for local)
-    script: String,
-
-    /// Additional arguments which should be passed into the filter execution
-    arguments: Vec<String>,
-
-    /// Settings object, which will be passed to the filter as json
-    settings: serde_json::Value,
-
-    // Capture unknown fields
-    #[serde(flatten)]
-    unknown: serde_json::Map<String, serde_json::Value>,
+impl HyraxDependency {
+    pub fn from_params(params: AddParams) -> HyraxDependency {
+        return HyraxDependency {
+            url: params.url,
+            ..Default::default()
+        };
+    }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RunFilter {
-    /// The filter to run, sourced from filterDefinitions.json
-    filter: String,
-
-    /// Settings object, which will be passed to the filter as json
-    settings: serde_json::Value,
-
-    /// Whether the filter is disabled
-    #[serde(default)]
-    disabled: bool, // Default false
-
-    // Capture unknown fields
-    #[serde(flatten)]
-    unknown: serde_json::Map<String, serde_json::Value>,
+pub struct HyraxConfig {
+    pub dependencies: Vec<HyraxDependency>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExportData {
-    /// The export type (e.g., exact)
-    pub target: String,
-
-    /// The export location, used with 'exact'
-    pub path: String,
+pub fn get_config_path() -> PathBuf {
+    PathBuf::from("hyrax.toml")
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Profile {
-    /// The list of filters to execute, when this profile is run
-    pub filters: Vec<RunFilter>,
+pub fn load_config() -> Result<HyraxConfig> {
+    let path = get_config_path();
 
-    /// The export data, which defines where this profile will be exported
-    pub export: ExportData,
+    if !path.exists() {
+        return Ok(HyraxConfig::default());
+    }
 
-    // Capture unknown fields
-    #[serde(flatten)]
-    unknown: serde_json::Map<String, serde_json::Value>,
-}
+    // let mut file = File::open(getConfigPath()).context("Could not open hyrax.toml file")?;
+    // let mut contents = String::new();
+    // file.read_to_string(&mut contents)?;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Regolith {
-    pub data_path: String,
-    pub filter_definitions: HashMap<String, FilterDefinition>,
-    pub profiles: HashMap<String, Profile>,
-
-    // Ignore unknown fields
-    #[serde(flatten)]
-    unknown: serde_json::Map<String, serde_json::Value>,
-}
-
-pub fn read() -> Result<Config> {
-    let mut file = File::open("config.json").context("Could not open config.json file")?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    let config: Config =
-        serde_json::from_str(&contents).context("Could not parse contents of config.json")?;
+    let contents = read_to_string(path).expect("Could not read config file.");
+    let config: HyraxConfig =
+        toml::from_str(&contents).context("Could not parse contents of hyrax.toml")?;
 
     Ok(config)
 }
 
-pub fn write(config: &Config) -> Result<()> {
-    let mut file = File::create("config.json")?;
-    let json_str = serde_json::to_string_pretty(config)?;
+pub fn save_config(config: &HyraxConfig) -> Result<()> {
+    let path = get_config_path();
+
+    let mut file = File::create(path)?;
+    let json_str = toml::to_string_pretty(config)?;
 
     file.write_all(json_str.as_bytes())?;
     Ok(())
-}
-
-impl Config {
-    /// Fetches a profile by name, or error if not exists.
-    pub fn get_profile(&self, profile_name: String) -> Result<Profile> {
-        match self.regolith.profiles.get(&profile_name) {
-            Some(p) => Ok(p.clone()),
-            None => bail!("Profile '{}' does not exist", profile_name),
-        }
-    }
 }

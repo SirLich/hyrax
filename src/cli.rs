@@ -73,6 +73,12 @@ pub struct InstallParams {
     pub force: bool,
 }
 
+#[derive(Debug, Args)]
+pub struct AddParams {
+    #[arg()]
+    pub url: String,
+}
+
 pub struct UrlDescriptor {
     /// The URL to the repository root, e.g., https://github.com/Bedrock-OSS/regolith-filters
     pub url: String,
@@ -143,18 +149,15 @@ impl InstallParams {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Initializes a new Hyrax project. Intended to be run in a configured godot project.
-    Init(InitParams),
-
-    /// Runs the specified profile
-    Run(RunParams),
-
     /// Installs the specified filter
     Install(InstallParams),
 
-    /// Creates a new project based on the template
-    New(NewParams),
-
     /// Test harness, for quickly running arbitrary code.
     Test {},
+
+    /// Adds a dependency
+    Add(AddParams),
+
+    /// Sync
+    Sync {},
 }
