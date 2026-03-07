@@ -62,16 +62,16 @@ pub struct RunParams {
     pub profile: String,
 }
 
-#[derive(Debug, Args)]
-pub struct InstallParams {
-    /// Filter name or url
-    #[arg()]
-    pub filter: String,
+// #[derive(Debug, Args)]
+// pub struct InstallParams {
+//     /// Filter name or url
+//     #[arg()]
+//     pub filter: String,
 
-    /// Forcefully initializes the project
-    #[arg(short, long)]
-    pub force: bool,
-}
+//     /// Forcefully initializes the project
+//     #[arg(short, long)]
+//     pub force: bool,
+// }
 
 #[derive(Debug, Args)]
 pub struct AddParams {
@@ -79,79 +79,8 @@ pub struct AddParams {
     pub url: String,
 }
 
-pub struct UrlDescriptor {
-    /// The URL to the repository root, e.g., https://github.com/Bedrock-OSS/regolith-filters
-    pub url: String,
-
-    /// The author of the repo (e.g., SirLich)
-    pub author_name: String,
-
-    /// The name of the repo (e.g, funtils)
-    pub repo_name: String,
-
-    /// The filepath where the filter.json can be found. e.g, C:/projects/project/.hyrax/filters/sirlich/functils
-    pub file_path: PathBuf,
-}
-
-impl UrlDescriptor {}
-
-enum FilterIdentifierType {
-    ShortName,
-    WebUrl,
-    RegolithUrl,
-}
-
-impl InstallParams {
-    pub fn get_filter_identifier(&self, opts: &GlobalOpts) -> Result<UrlDescriptor> {
-        match self.get_identifier_type() {
-            FilterIdentifierType::ShortName => {
-                bail!("Short-name URLs are not yet implemented.")
-            }
-            FilterIdentifierType::WebUrl => {
-                let prefix = "https://github.com/";
-                let parts = self
-                    .filter
-                    .as_str()
-                    .strip_prefix(prefix)
-                    .expect("Should be a github URL.")
-                    .split("/")
-                    .collect::<Vec<&str>>();
-
-                println!("{:?}", parts);
-
-                let name = parts[3].to_owned();
-
-                return Ok(UrlDescriptor {
-                    url: "https://".to_owned() + parts[0] + "/" + parts[1] + "/" + parts[2],
-                    author_name: name.clone(),
-                    repo_name: name.clone(),
-                    file_path: opts.cache()?.join(name),
-                });
-            }
-            FilterIdentifierType::RegolithUrl => {
-                bail!("Regolith URLs are not supported.")
-            }
-        }
-    }
-
-    fn get_identifier_type(&self) -> FilterIdentifierType {
-        if self.filter.contains(":") {
-            return FilterIdentifierType::WebUrl;
-        }
-
-        if self.filter.contains("/") {
-            return FilterIdentifierType::RegolithUrl;
-        }
-
-        return FilterIdentifierType::ShortName;
-    }
-}
-
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Installs the specified filter
-    Install(InstallParams),
-
     /// Test harness, for quickly running arbitrary code.
     Test {},
 

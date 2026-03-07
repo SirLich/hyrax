@@ -1,8 +1,8 @@
-[[dependencies]]
-url = "https://github.com/SirLich/SirLich.github.io"
-source = "content/descriptions"
-destination = "test_folder"
+# [[dependencies]]
+# url = "https://github.com/SirLich/SirLich.github.io"
+# source = "content/descriptions"
+# destination = "test/test_folder"
 
 [[dependencies]]
 url = "https://github.com/SirLich/SirLich.github.io"
-destination = "test_full_repo"
+destination = "test/test_full_repo"

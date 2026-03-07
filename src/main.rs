@@ -105,9 +105,6 @@ fn main() {
     let cli = cli::Root::parse();
 
     match cli.command {
-        Command::Install(params) => {
-            installer::install(params, cli.global_opts).expect("Could not install")
-        }
         Command::Test {} => {
             // let p1 = "C:/my_project";
             // let p2 = "/Users";

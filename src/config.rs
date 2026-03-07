@@ -31,6 +31,23 @@ impl HyraxDependency {
     pub fn has_source_remap(&self) -> bool {
         return self.source.is_some();
     }
+
+    pub fn validate(&self) -> Result<()> {
+        match &self.source {
+            Some(s) => {
+                if s.is_absolute() {
+                    bail!("Source directory may not be absolute.")
+                }
+            }
+            None => (),
+        }
+
+        if self.destination.is_absolute() {
+            bail!("Destination may not be absolute.")
+        }
+
+        return Ok(());
+    }
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

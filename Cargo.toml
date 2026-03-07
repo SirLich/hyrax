@@ -1,5 +1,5 @@
 [package]
-name = "regolite"
+name = "hyrax"
 version = "0.1.0"
 edition = "2021"
 authors = ["SirLich"]
@@ -15,3 +15,4 @@ walkdir = "2.4.0"
 git2 = "0.18.1"
 toml = "1.0.3"
 tempfile = "3.26.0"
+inquire = "0.9.4"
