@@ -109,7 +109,17 @@ fn main() {
             installer::install(params, cli.global_opts).expect("Could not install")
         }
         Command::Test {} => {
-            println!("Hello World!");
+            // let p1 = "C:/my_project";
+            // let p2 = "/Users";
+
+            // let combined = Path::new(p1).join(p2);
+            // println!("{}", combined.display());
+
+            let p1 = "C:/my_project";
+            let p2 = "./Users";
+
+            let combined = Path::new(p1).join(p2);
+            println!("{}", combined.display());
         }
         Command::Add(params) => {
             installer::add(params).unwrap();

@@ -14,9 +14,9 @@ use crate::cli::AddParams;
 #[serde(rename_all = "camelCase")]
 pub struct HyraxDependency {
     pub url: String,
-    pub reference: String,
-    pub source: PathBuf,
+    pub version: Option<String>,
     pub destination: PathBuf,
+    pub source: Option<PathBuf>,
 }
 
 impl HyraxDependency {
@@ -25,6 +25,11 @@ impl HyraxDependency {
             url: params.url,
             ..Default::default()
         };
+    }
+
+    /// If true, we only wish to install a portion of the repo
+    pub fn has_source_remap(&self) -> bool {
+        return self.source.is_some();
     }
 }
 

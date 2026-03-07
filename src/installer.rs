@@ -1,6 +1,8 @@
 use anyhow;
 use anyhow::{bail, Error, Result};
+use git2::build::RepoBuilder;
 use git2::Repository;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 use tempfile::{self, TempDir};
 
@@ -72,30 +74,74 @@ pub fn sync() -> Result<()> {
 }
 
 pub fn sync_dependency(dependency: &HyraxDependency) -> Result<()> {
-    let dir = TempDir::new()?.keep();
-
-    println!("{}", dir.display());
-
-    println!("{}", dependency.source.display());
-
-    let move_from = std::path::Path::join(&dir, &dependency.source);
-    let move_to = std::path::Path::join(&std::env::current_dir()?, &dependency.destination);
-
-    println!("{}", move_from.display());
-    println!("{}", move_to.display());
-
-    let clone_result = Repository::clone(&dependency.url, dir);
-    match clone_result {
-        Ok(_repo) => {
-            println!("Repo installed correctly.")
+    match &dependency.source {
+        Some(s) => {
+            if s.is_absolute() {
+                bail!("Source directory may not be absolute.")
+            }
         }
-        Err(e) => {
-            println!("Repo could not be installed");
-            println!("{}", e.to_string());
-        }
+        None => (),
     }
 
-    std::fs::rename(move_from, move_to);
+    if dependency.destination.is_absolute() {
+        bail!("Destination may not be absolute.")
+    }
+
+    let project_dir = std::env::current_dir()?;
+
+    // Where we will clone the repo. This is either a temporary location, or the destination within the project.
+    let install_dir: PathBuf = if dependency.has_source_remap() {
+        TempDir::new()?.path().to_path_buf()
+    } else {
+        project_dir.join(&dependency.destination)
+    };
+
+    if install_dir.exists() {
+        std::fs::remove_dir_all(&install_dir).expect("Failed to clear installation dir.");
+    }
+
+    let repo = Repository::clone(&dependency.url, &install_dir).expect("Failed to clone.");
+
+    match &dependency.version {
+        Some(version) => {
+            let (object, reference) = repo.revparse_ext(&version).expect("Object not found");
+
+            repo.checkout_tree(&object, None)
+                .expect("Failed to checkout");
+
+            match reference {
+                // gref is an actual reference like branches or tags
+                Some(gref) => repo.set_head(gref.name().unwrap()),
+                // this is a commit, not a reference
+                None => repo.set_head_detached(object.id()),
+            }
+            .expect("Failed to set HEAD");
+        }
+        None => (),
+    }
+
+    if dependency.has_source_remap() {
+        let source_path = &dependency.source.as_ref().unwrap();
+        let move_from = std::path::Path::join(&install_dir, &source_path);
+        let move_to = std::path::Path::join(&project_dir, &dependency.destination);
+
+        // Clear the output directory.
+        if move_to.exists() {
+            std::fs::remove_dir_all(&move_to)?;
+        }
+
+        println!(
+            "Moving from {} to {}",
+            move_from.display(),
+            move_to.display()
+        );
+        std::fs::rename(move_from, move_to).expect("Failed to move from source to destination");
+    } else {
+        let remove_dir = std::path::Path::join(&install_dir, ".git");
+        println!("Deleting .git dir: {}", remove_dir.display());
+        std::fs::remove_dir_all(remove_dir)
+            .expect("Failed to delete .git folder from installed dependency.");
+    }
 
     return Ok(());
 }
