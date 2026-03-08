@@ -1,10 +1,8 @@
 use std::env;
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
-
-use crate::file_helper;
 
 /// A lite re-implementation of Regolith in Rust.
 #[derive(Parser, Debug)]
@@ -24,19 +22,7 @@ pub struct GlobalOpts {
     pub dir: PathBuf,
 }
 
-impl GlobalOpts {
-    pub fn working_dir(&self) -> Result<PathBuf> {
-        if self.dir.exists() {
-            Ok(file_helper::absolute_path(&self.dir.clone())?)
-        } else {
-            Ok(env::current_dir()?)
-        }
-    }
-
-    pub fn cache(&self) -> Result<PathBuf> {
-        Ok(self.working_dir()?.join(".hyrax/cache"))
-    }
-}
+impl GlobalOpts {}
 
 #[derive(Debug, Args)]
 pub struct InitParams {
@@ -57,27 +43,38 @@ pub struct InitParams {
 pub struct NewParams {}
 
 #[derive(Debug, Args)]
-pub struct RunParams {
-    #[clap(default_value = "default")]
-    pub profile: String,
-}
-
-// #[derive(Debug, Args)]
-// pub struct InstallParams {
-//     /// Filter name or url
-//     #[arg()]
-//     pub filter: String,
-
-//     /// Forcefully initializes the project
-//     #[arg(short, long)]
-//     pub force: bool,
-// }
-
-#[derive(Debug, Args)]
 pub struct AddParams {
+    /// Friendly name for the dependency. Just used for bookkeeping.
+    #[arg()]
+    pub name: String,
+
+    /// The git URL of the dependency you wish to install.
     #[arg()]
     pub url: String,
+
+    /// The path within the project where the dependency will be installed. Should usually point to a blank directory.
+    #[arg()]
+    pub destination: PathBuf,
+
+    /// The path within the dependency that you want. If left blank, the entire dependency will be installed.
+    #[arg(short, long)]
+    pub source: Option<PathBuf>,
+
+    /// The version of the dependency you want to install. Can be a branch name, tag, or commit SHA.
+    /// If left blank, the main branch will be used.
+    #[arg(short, long)]
+    pub version: Option<String>,
 }
+
+#[derive(Debug, Args)]
+pub struct SyncParams {
+    /// Skips dialogues
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct CheckParams {}
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
@@ -88,5 +85,8 @@ pub enum Command {
     Add(AddParams),
 
     /// Sync
-    Sync {},
+    Sync(SyncParams),
+
+    /// Provides information on whether your dependencies are up to date.
+    Check(CheckParams),
 }

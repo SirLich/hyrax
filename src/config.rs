@@ -11,18 +11,36 @@ use toml::Table;
 use crate::cli::AddParams;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HyraxDependency {
+    pub name: String,
     pub url: String,
     pub version: Option<String>,
+    pub version_lock: Option<String>,
     pub destination: PathBuf,
     pub source: Option<PathBuf>,
+}
+
+impl From<AddParams> for HyraxDependency {
+    fn from(params: AddParams) -> Self {
+        HyraxDependency {
+            url: params.url,
+            destination: params.destination,
+            source: params.source,
+            version: params.version,
+            ..Default::default()
+        }
+    }
 }
 
 impl HyraxDependency {
     pub fn from_params(params: AddParams) -> HyraxDependency {
         return HyraxDependency {
+            name: params.name,
             url: params.url,
+            destination: params.destination,
+            version: params.version,
+            source: params.source,
             ..Default::default()
         };
     }
@@ -51,7 +69,7 @@ impl HyraxDependency {
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct HyraxConfig {
     pub dependencies: Vec<HyraxDependency>,
 }
