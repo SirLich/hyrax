@@ -1,16 +1,16 @@
-use anyhow::{self};
-use anyhow::{bail, Result};
-use chrono::{DateTime, Utc};
-use git2::{Oid, Repository};
-use inquire::Confirm;
-use std::path::PathBuf;
-use tempfile::{self, TempDir};
-
 use crate::cli::{CheckParams, SyncParams};
 use crate::{
     cli::AddParams,
     config::{load_config, save_config, HyraxDependency},
 };
+use anyhow::{self};
+use anyhow::{bail, Result};
+use chrono::{DateTime, Utc};
+use git2::{Oid, Repository};
+use inquire::Confirm;
+use owo_colors::OwoColorize;
+use std::path::PathBuf;
+use tempfile::{self, TempDir};
 
 pub fn add(params: AddParams) -> Result<()> {
     let mut config = load_config().expect("Could not load config.");
@@ -56,23 +56,27 @@ pub fn check_dependency(dependency: &HyraxDependency, _params: &CheckParams) -> 
     if let Some(version_lock) = &dependency.version_lock {
         if version_lock == &current_sha {
             println!(
-                "Dependency {} is up to date (version matches version_lock)",
-                dependency.name
+                "{} is up to date {}",
+                dependency.name.green().bold(),
+                "(version matches version_lock)".italic()
             )
         } else {
             println!(
-                "Dependency {} is stale.\n- Installed: {} (at {})\n- Available: {} (at {})",
-                dependency.name,
+                "{} is stale.\n- {}: {} ({})\n- {}: {} ({})",
+                dependency.name.red().bold(),
+                "Installed".bold(),
                 version_lock,
-                get_commit_time(&repository, &version_lock),
+                get_commit_time(&repository, &version_lock).italic(),
+                "Available".bold(),
                 &current_sha,
-                get_commit_time(&repository, &current_sha)
+                get_commit_time(&repository, &current_sha).italic()
             )
         }
     } else {
         println!(
-            "Dependency {} is likely not installed (no version_lock)",
-            dependency.name
+            "{} is likely not installed {}",
+            dependency.name.yellow().bold(),
+            "(no version_lock)".italic()
         )
     }
 

@@ -72,10 +72,6 @@ pub fn load_config() -> Result<HyraxConfig> {
         return Ok(HyraxConfig::default());
     }
 
-    // let mut file = File::open(getConfigPath()).context("Could not open hyrax.toml file")?;
-    // let mut contents = String::new();
-    // file.read_to_string(&mut contents)?;
-
     let contents = read_to_string(path).expect("Could not read config file.");
     let config: HyraxConfig =
         toml::from_str(&contents).context("Could not parse contents of hyrax.toml")?;
