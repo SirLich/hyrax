@@ -1,7 +1,5 @@
-use std::env;
 use std::path::PathBuf;
 
-use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
 /// A lite re-implementation of Regolith in Rust.

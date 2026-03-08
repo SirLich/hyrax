@@ -1,7 +1,7 @@
 use anyhow::{self};
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
-use git2::{Oid, Repository, Time};
+use git2::{Oid, Repository};
 use inquire::Confirm;
 use std::path::PathBuf;
 use tempfile::{self, TempDir};

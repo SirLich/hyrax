@@ -1,12 +1,10 @@
 #![allow(unused_braces)]
 
 use anyhow::{bail, Context, Result};
-use git2::Config;
 use serde::{Deserialize, Serialize};
 use std::fs::{read_to_string, File};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-use toml::Table;
+use std::io::Write;
+use std::path::PathBuf;
 
 use crate::cli::AddParams;
 
@@ -34,17 +32,6 @@ impl From<AddParams> for HyraxDependency {
 }
 
 impl HyraxDependency {
-    pub fn from_params(params: AddParams) -> HyraxDependency {
-        return HyraxDependency {
-            name: params.name,
-            url: params.url,
-            destination: params.destination,
-            version: params.version,
-            source: params.source,
-            ..Default::default()
-        };
-    }
-
     /// If true, we only wish to install a portion of the repo
     pub fn has_source_remap(&self) -> bool {
         return self.source.is_some();
