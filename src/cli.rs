@@ -15,26 +15,9 @@ pub struct Root {
 
 #[derive(Debug, Args)]
 pub struct GlobalOpts {
-    /// Defines the working directory for this command. Can be relative, or absolute.
-    #[arg(short, long, default_value = ".", global = true)]
-    pub dir: PathBuf,
-}
-
-impl GlobalOpts {}
-
-#[derive(Debug, Args)]
-pub struct InitParams {
-    /// Forcefully initializes the project
+    /// Whether to enable verbose logging.
     #[arg(short, long)]
-    pub force: bool,
-
-    /// Define the author of the project
-    #[arg(short, long, default_value = "Your name")]
-    pub author: String,
-
-    /// Define the name of the project
-    #[arg(short, long, default_value = "Project name")]
-    pub name: String,
+    pub debug: bool,
 }
 
 #[derive(Debug, Args)]
@@ -66,6 +49,10 @@ pub struct AddParams {
 
 #[derive(Debug, Args)]
 pub struct SyncParams {
+    /// Updates dependencies to the latest version.
+    #[arg(short, long)]
+    pub update: bool,
+
     /// Skips dialogues
     #[arg(short, long)]
     pub force: bool,
@@ -76,15 +63,12 @@ pub struct CheckParams {}
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Test harness, for quickly running arbitrary code.
-    Test {},
-
-    /// Adds a dependency
+    /// Add a new dependency to the project.
     Add(AddParams),
 
-    /// Sync
+    /// Downloads the listed dependencies into your project.
     Sync(SyncParams),
 
-    /// Provides information on whether your dependencies are up to date.
+    /// Checks whether your dependencies are up to date.
     Check(CheckParams),
 }

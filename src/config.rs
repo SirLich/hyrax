@@ -13,7 +13,7 @@ use crate::cli::AddParams;
 pub struct HyraxDependency {
     pub name: String,
     pub url: String,
-    pub version: Option<String>,
+    pub version: String,
     pub version_lock: Option<String>,
     pub destination: PathBuf,
     pub source: Option<PathBuf>,
@@ -25,7 +25,7 @@ impl From<AddParams> for HyraxDependency {
             url: params.url,
             destination: params.destination,
             source: params.source,
-            version: params.version,
+            version: params.version.unwrap_or(String::new()),
             ..Default::default()
         }
     }

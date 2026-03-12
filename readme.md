@@ -12,31 +12,35 @@ random_stuff/...
 addons/my_addon_name/...
 ```
 
-Of this repo, only the contents of `addons/my_addon_name/` is desired. Hyrax allows you to easily pull in just this folder, and inline it into the repository.
+Of this repo, only the contents of `addons/my_addon_name/` is desired. Hyrax allows you to easily pull in just this folder, and inline it into the repository. At a later date, you can check if the dependency has an update, and update it. 
 
 ## Usage and Examples
 
 Download Hyrax from the [https://github.com/SirLich/hyrax/releases]. Open a terminal in the root of your project, and run `hyrax` to confirm that it's installed.
 
-Run `hyrax add <url> <destination>` to add a dependency to your project. This will create or edit a `hyrax.toml` file. You can optionally use `-s` to set source, and `-v` to set version. You can open this file and adjust the package settings manually if needed.
+Run `hyrax add <url> <destination>` to add a dependency to your project. This will create or edit `hyrax.toml`. You can optionally use `-s` to set source, and `-v` to set version. You can open this file and adjust the package settings manually if needed.
 
 Here is an example, showing how you can import the Godot SVG icons into your project:
 
 ```toml
 [[dependencies]]
-name = "Godot Icons"                          # Friendly name for the dependency
-url = "https://github.com/godotengine/godot"  # The git repo you wish to install from
-source = "editor/icons"                       # The folder or file you wish use
-destination = "test/icons"                    # The path in your project where the dependency will be installed. Normally an empty directory.
+name = "GodotIcons"                           # Friendly name
+url = "https://github.com/godotengine/godot"  # The git repo you wish to install
+source = "editor/icons"                       # The folder or file you wish use, relative to the repository root
+destination = "test/icons"                    # Where you want to install the files, relative to your project root
 version = "master"                            # The branch, tag, or commit SHA you want to reference
-version_lock = "..."                          # Set automatically by Hyrax: Represents the actually installed version.
+version_lock = "..."                          # Set automatically: Represents the real installed version as a commit SHA
 ```
 
 Run `hyrax sync` to install the dependencies. Dependencies without a `source` will install the entire repository, otherwise it will install just the requested folder or file. After installing, a `version_lock` field will be added to each dependency. This field tracks what commit was *actually* installed. Future syncs will use the locked version by default.
 
 ## Updating Dependencies
 
-You can always manually update dependencies by editing the `hyrax.toml` file, and then re-running `hyrax sync`. You can also run `hyrax check` to see if any updates are available, or `hyrax update` to bump dependencies automatically.
+You can run `hyrax check` to see if any updates are available. This will print information for each of your installed dependencies 
+
+## What should I commit?
+
+
 
 ##  Alternatives
 
