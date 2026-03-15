@@ -21,6 +21,16 @@ enum VersionType {
     Unknown,
 }
 
+fn format_version(version: &str, version_type: VersionType) -> impl std::fmt::Display {
+    let type_string = match version_type {
+        VersionType::SHA => "Commit",
+        VersionType::Branch => "Branch",
+        VersionType::Tag => "Tag",
+        VersionType::Unknown => "Unknown",
+    };
+    format!("({} {})", type_string.bold(), version.italic())
+}
+
 pub fn add(params: AddParams) -> Result<()> {
     let mut config = load_config().expect("Could not load config.");
 
@@ -104,44 +114,58 @@ fn get_commit_time(repository: &Repository, sha: &str) -> String {
 }
 
 pub fn check_dependency(dependency: HyraxDependency, _params: &CheckParams) {
+    info!("{:?}", dependency);
     let install_dir: PathBuf = TempDir::new().unwrap().path().to_path_buf();
-    let repository =
-        install_repository(&dependency, &install_dir).expect("Could not install repository");
+    let repository = install_repository(&dependency.url, &dependency.version, &install_dir)
+        .expect("Could not install repository");
 
+    // If no version lock, assume not installed
     if dependency.version_lock.is_none() {
         println!(
-            "{} is likely not installed {}",
+            "{} is likely not installed {}\n- {}",
             dependency.name.yellow().bold(),
-            "(no version_lock)".italic()
+            "(no version_lock)".italic(),
+            "Tip: Run 'hyrax sync' to install".italic().yellow()
         );
         return;
     }
 
+    // The actual installed version (version lock)
     let installed_version = dependency.version_lock.unwrap();
     let installed_type = get_version_type(&repository, &installed_version);
 
+    // The desired version (version)
     let desired_version = dependency.version;
     let desired_type = get_version_type(&repository, &desired_version);
 
-    if installed_type == VersionType::SHA {
-        println!(
-            "{} is likely not installed {}",
-            dependency.name.yellow().bold(),
-            "(no version_lock)".italic()
-        );
-        return;
-    };
-
+    // The version which would be available, if installing.
     let available_version =
         get_repo_sha(&repository).expect("Could not evaluate available version");
+    let available_type = get_version_type(&repository, &available_version);
 
-    if installed_version == available_version {
+    let version_matches = installed_version == available_version;
+
+    if version_matches && desired_type == VersionType::Branch {
         println!(
-            "{} is up to date {}",
+            "{} is up to date {}\n- Tracking: {}\n- Installed: {}",
             dependency.name.green().bold(),
-            "(version matches version_lock)".italic()
-        )
-    } else {
+            "(version matches version_lock)".italic(),
+            format_version(&desired_version, desired_type),
+            format_version(&installed_version, installed_type),
+        );
+        return;
+    }
+    if version_matches && desired_type != VersionType::Branch {
+        println!(
+            "{} is up to date, but is tracking a specific commit or tag.\n- Tracking: {}\n- Installed: {}",
+            dependency.name.green().bold(),
+            format_version(&desired_version, desired_type),
+            format_version(&installed_version, installed_type),
+        );
+        return;
+    }
+
+    if !version_matches {
         println!(
             "{} is stale.\n- {}: {} ({})\n- {}: {} ({})",
             dependency.name.red().bold(),
@@ -201,7 +225,11 @@ pub fn sync_dependency(dependency: &mut HyraxDependency, params: &SyncParams) ->
         if dependency.version_lock.is_some() {
             println!("Updating {}...", dependency.name.green());
         } else {
-            println!("Installing {}...", dependency.name.green());
+            println!(
+                "Installing {} ({})",
+                dependency.name.green(),
+                "For the first time".italic()
+            );
         }
     } else {
         if dependency.version_lock.is_some() {
@@ -214,10 +242,22 @@ pub fn sync_dependency(dependency: &mut HyraxDependency, params: &SyncParams) ->
             println!("Installing {}...", dependency.name.green());
         }
     }
-    let installed_version = if dependency.has_source_remap() {
-        sync_dependency_with_source_remap(dependency, params).expect("Could not install dependency")
+
+    let desired_version = if !params.update {
+        dependency
+            .version_lock
+            .as_ref()
+            .unwrap_or(&dependency.version)
     } else {
-        sync_dependency_full(dependency, params).expect("Could not install dependency")
+        &dependency.version
+    };
+
+    let installed_version = if dependency.has_source_remap() {
+        sync_dependency_with_source_remap(dependency, params, desired_version)
+            .expect("Could not install dependency")
+    } else {
+        sync_dependency_full(dependency, params, desired_version)
+            .expect("Could not install dependency")
     };
 
     dependency.version_lock.replace(installed_version);
@@ -227,7 +267,11 @@ pub fn sync_dependency(dependency: &mut HyraxDependency, params: &SyncParams) ->
 
 /// Syncs a dependency directly into the users project.
 /// Attempts to delete the .git folder of the synced dep.
-pub fn sync_dependency_full(dependency: &HyraxDependency, params: &SyncParams) -> Result<String> {
+pub fn sync_dependency_full(
+    dependency: &HyraxDependency,
+    params: &SyncParams,
+    desired_version: &String,
+) -> Result<String> {
     let project_dir = std::env::current_dir()?;
     let install_dir = project_dir.join(&dependency.destination);
 
@@ -240,8 +284,8 @@ pub fn sync_dependency_full(dependency: &HyraxDependency, params: &SyncParams) -
         std::fs::remove_dir_all(&install_dir).expect("Failed to clear installation dir.");
     }
 
-    let repository =
-        install_repository(&dependency, &install_dir).expect("Failed to install repository.");
+    let repository = install_repository(&dependency.url, &desired_version, &install_dir)
+        .expect("Failed to install repository.");
     let installed_version = get_repo_sha(&repository)?;
     drop(repository); // So we can remove git dir.
 
@@ -257,19 +301,50 @@ pub fn get_repo_sha(repository: &Repository) -> Result<String> {
     return Ok(repository.head()?.peel_to_commit()?.id().to_string());
 }
 
-pub fn install_repository(
+/// Syncs a dependency into a temp dir, and then copies it into the users project.
+pub fn sync_dependency_with_source_remap(
     dependency: &HyraxDependency,
+    params: &SyncParams,
+    desired_version: &String,
+) -> Result<String> {
+    let project_dir = std::env::current_dir()?;
+
+    let install_dir: PathBuf = TempDir::new()?.path().to_path_buf();
+    let source_path = &dependency.source.as_ref().unwrap();
+    let move_from = std::path::Path::join(&install_dir, &source_path);
+    let move_to = std::path::Path::join(&project_dir, &dependency.destination);
+
+    let user_response = get_user_confirmtation(dependency, params, &move_to);
+    if !user_response {
+        bail!("User rejected the confirmation.")
+    }
+
+    let repository = install_repository(&dependency.url, &desired_version, &install_dir)
+        .expect("Failed to install repository.");
+    let installed_version = get_repo_sha(&repository)?;
+
+    // Clear the output directory.
+    if move_to.exists() {
+        std::fs::remove_dir_all(&move_to)?;
+    }
+
+    std::fs::rename(move_from, move_to).expect("Failed to move from source to destination");
+
+    return Ok(installed_version);
+}
+
+pub fn install_repository(
+    url: &String,
+    version: &String,
     install_dir: &PathBuf,
 ) -> Result<Repository> {
-    info!("Installing repository: {}", dependency.url);
-    let repository = Repository::clone(&dependency.url, &install_dir).expect("Failed to clone.");
+    info!("Installing repository: {}", url);
+    let repository = Repository::clone(&url, &install_dir).expect("Failed to clone.");
 
-    info!("Installing version: {}", dependency.version);
+    info!("Installing version: {}", version);
 
     {
-        let (object, reference) = repository
-            .revparse_ext(&dependency.version)
-            .expect("Object not found");
+        let (object, reference) = repository.revparse_ext(&version).expect("Object not found");
 
         repository
             .checkout_tree(&object, None)
@@ -285,35 +360,4 @@ pub fn install_repository(
     }
 
     Ok(repository)
-}
-
-/// Syncs a dependency into a temp dir, and then copies it into the users project.
-pub fn sync_dependency_with_source_remap(
-    dependency: &HyraxDependency,
-    params: &SyncParams,
-) -> Result<String> {
-    let project_dir = std::env::current_dir()?;
-
-    let install_dir: PathBuf = TempDir::new()?.path().to_path_buf();
-    let source_path = &dependency.source.as_ref().unwrap();
-    let move_from = std::path::Path::join(&install_dir, &source_path);
-    let move_to = std::path::Path::join(&project_dir, &dependency.destination);
-
-    let user_response = get_user_confirmtation(dependency, params, &move_to);
-    if !user_response {
-        bail!("User rejected the confirmation.")
-    }
-
-    let repository =
-        install_repository(&dependency, &install_dir).expect("Failed to install repository.");
-    let installed_version = get_repo_sha(&repository)?;
-
-    // Clear the output directory.
-    if move_to.exists() {
-        std::fs::remove_dir_all(&move_to)?;
-    }
-
-    std::fs::rename(move_from, move_to).expect("Failed to move from source to destination");
-
-    return Ok(installed_version);
 }

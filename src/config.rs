@@ -22,6 +22,7 @@ pub struct HyraxDependency {
 impl From<AddParams> for HyraxDependency {
     fn from(params: AddParams) -> Self {
         HyraxDependency {
+            name: params.name,
             url: params.url,
             destination: params.destination,
             source: params.source,

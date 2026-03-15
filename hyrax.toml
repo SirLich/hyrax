@@ -1,7 +1,0 @@
-[[dependencies]]
-name = "Sam"
-url = "https://github.com/SirLich/SirLich.github.io"
-version = "fb5c195ba0abd3b814a266efb9b0652883e19a61"
-version_lock = "a79042a33543580748fdf2c496c039791a2f5f48"
-destination = "test/test_folder"
-source = "content/blog"
