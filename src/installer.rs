@@ -3,6 +3,7 @@ use crate::{
     cli::AddParams,
     config::{load_config, save_config, HyraxDependency},
 };
+use anyhow::Context;
 use anyhow::{self};
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
@@ -31,34 +32,65 @@ fn format_version(version: &str, version_type: VersionType) -> impl std::fmt::Di
     format!("({} {})", type_string.bold(), version.italic())
 }
 
+fn validate_url(url: &str) -> Result<()> {
+    let mut remote = git2::Remote::create_detached(url)?;
+    remote.connect(Direction::Fetch)?;
+    let _refs = remote.list()?;
+    remote.disconnect()?;
+    Ok(())
+}
+
 pub fn add(params: AddParams) -> Result<()> {
-    let mut config = load_config().expect("Could not load config.");
+    let mut config = load_config().expect("Failed to load config");
 
     for dependency in &config.dependencies {
         if dependency.name == params.name {
-            bail!("This dependency already exists.");
+            bail!("A dependency with that name already exists.");
         }
     }
+
+    match validate_url(&params.url) {
+        Ok(_) => {}
+        Err(_) => bail!("URL is malformed."),
+    };
 
     let mut dependency: HyraxDependency = params.into();
     if dependency.version.is_empty() {
         dependency.version =
-            get_default_branch(&dependency.url).expect("Could not resolve default branch.");
+            get_default_branch(&dependency.url).context("Could not resolve default branch.")?;
     }
     config.dependencies.push(dependency);
 
-    save_config(&config).expect("Could not save config.");
+    save_config(&config).context("Could not save config.")?;
 
     return Ok(());
 }
 
-fn get_default_branch(repo_url: &str) -> Result<String, git2::Error> {
-    let install_dir: PathBuf = TempDir::new().unwrap().path().to_path_buf();
-    let repo = Repository::init_bare(install_dir)?;
-    let mut remote = repo.remote_anonymous(repo_url)?;
-    remote.connect(Direction::Fetch)?;
-    let buf = remote.default_branch()?;
-    let branch = buf.as_str().unwrap_or("").to_string();
+fn get_default_branch(repo_url: &str) -> Result<String> {
+    let install_dir: PathBuf = TempDir::new()
+        .context("failed to create temporary directory")?
+        .path()
+        .to_path_buf();
+
+    let repo =
+        Repository::init_bare(&install_dir).context("failed to initialize bare git repository")?;
+
+    let mut remote = repo
+        .remote_anonymous(repo_url)
+        .context("failed to create remote")?;
+
+    remote
+        .connect(Direction::Fetch)
+        .context("failed to connect to remote repository")?;
+
+    let buf = remote
+        .default_branch()
+        .context("failed to resolve default branch")?;
+
+    let branch = buf
+        .as_str()
+        .context("default branch name is not valid UTF-8")?
+        .to_string();
 
     Ok(branch)
 }
@@ -141,7 +173,7 @@ pub fn check_dependency(dependency: HyraxDependency, _params: &CheckParams) {
     // The version which would be available, if installing.
     let available_version =
         get_repo_sha(&repository).expect("Could not evaluate available version");
-    let available_type = get_version_type(&repository, &available_version);
+    let _available_type = get_version_type(&repository, &available_version);
 
     let version_matches = installed_version == available_version;
 

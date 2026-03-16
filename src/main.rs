@@ -2,6 +2,7 @@ mod cli;
 mod config;
 mod installer;
 
+use anyhow::Context;
 use clap::Parser;
 use cli::Command;
 use log::{Level, LevelFilter, Metadata, Record};
@@ -35,15 +36,23 @@ fn main() {
         .map(|()| log::set_max_level(log_level))
         .expect("Failed to initialize logger.");
 
-    match cli.command {
-        Command::Add(params) => {
-            installer::add(params).unwrap();
+    if let Err(e) = run(cli) {
+        println!("{}", e);
+
+        for cause in e.chain().skip(1) {
+            println!(" - {}", cause);
         }
-        Command::Sync(params) => {
-            installer::sync(&params).unwrap();
-        }
-        Command::Check(params) => {
-            installer::check(&params).unwrap();
-        }
+
+        std::process::exit(1);
     }
+}
+
+pub fn run(cli: cli::Root) -> anyhow::Result<()> {
+    match cli.command {
+        Command::Add(params) => installer::add(params).context("Failed to add dependency"),
+        Command::Sync(params) => installer::sync(&params).context("Failed to sync dependencies"),
+        Command::Check(params) => installer::check(&params).context("Failed to check dependencies"),
+    }?;
+
+    Ok(())
 }
